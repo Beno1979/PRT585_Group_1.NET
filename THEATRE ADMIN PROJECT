@@ -1,0 +1,122 @@
+MOVIE MODEL
+using System;
+using System.ComponentModel.DataAnnotations;
+
+public class Movie
+{
+    public int Id { get; set; }
+    
+    [Required]
+    public string Name { get; set; }
+    
+    [Required]
+    [DataType(DataType.Date)]
+    public DateTime ReleaseDate { get; set; }
+    
+    [Required]
+    public string Director { get; set; }
+    
+    [Required]
+    [EmailAddress]
+    public string ContactEmailAddress { get; set; }
+    
+    [Required]
+    public Language Language { get; set; }
+    
+    [Required]
+    public int CategoryId { get; set; }
+    
+    public Category Category { get; set; }
+}
+
+public enum Language
+{
+    English,
+    Japanese,
+    Chinese
+}
+
+
+CATEGORY MODEL
+using System.ComponentModel.DataAnnotations;
+
+public class Category
+{
+    public int Id { get; set; }
+    
+    [Required]
+    public string Name { get; set; }
+    
+    [Required]
+    public string Code { get; set; }
+    
+    public ICollection<Movie> Movies { get; set; }
+}
+
+
+DB CONTENT
+using Microsoft.EntityFrameworkCore;
+
+public class TheaterContext : DbContext
+{
+    public DbSet<Movie> Movies { get; set; }
+    public DbSet<Category> Categories { get; set; }
+
+    public TheaterContext(DbContextOptions<TheaterContext> options)
+        : base(options)
+    {
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Movie>()
+            .HasOne(m => m.Category)
+            .WithMany(c => c.Movies)
+            .HasForeignKey(m => m.CategoryId);
+    }
+}
+
+CONFIG JSON CONNECTION
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=TheaterDB;Trusted_Connection=True;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "AllowedHosts": "*"
+}
+
+-------------------------------------------------------------
+
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddDbContext<TheaterContext>(options =>
+        options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+    services.AddControllersWithViews();
+}
+
+MOVIE CREATE / EDIT HTML
+
+<div class="form-group">
+    <label asp-for="CategoryId" class="control-label"></label>
+    <select asp-for="CategoryId" class ="form-control" asp-items="ViewBag.Categories"></select>
+    <span asp-validation-for="CategoryId" class="text-danger"></span>
+</div>
+
+MOVIE CONTROLLER C#
+
+public async Task<IActionResult> Create()
+{
+    ViewBag.Categories = new SelectList(await _context.Categories.ToListAsync(), "Id", "Name");
+    return View();
+}
+
+
+
+
+
